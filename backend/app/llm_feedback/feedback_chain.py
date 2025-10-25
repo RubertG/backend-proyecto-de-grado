@@ -100,10 +100,11 @@ class LangChainLLMWrapper:
             self._try_lazy_init()
             if not self._chain:
                 logger.error("Invocación LLM en modo STUB. Devuelvo respuesta placeholder. Modelo=%s", self.model)
-        return ("Retroalimentación (modo stub sin modelo):\n"
-            "- No se evaluó ejecución real.\n"
-            "- Aporta más detalle si buscas análisis profundo.\n"
-            "- (Fin del feedback)")
+                return ("Retroalimentación (modo stub sin modelo):\n"
+                    "- No se evaluó ejecución real.\n"
+                    "- Aporta más detalle si buscas análisis profundo.\n"
+                    "- (Fin del feedback)")
+        
         try:
             resp = self._chain.invoke(prompt)
             if hasattr(resp, 'content'):

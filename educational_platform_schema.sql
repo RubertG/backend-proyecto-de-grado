@@ -1,99 +1,93 @@
-CREATE TYPE user_role AS ENUM ('admin', 'student');
-CREATE TYPE exercise_type AS ENUM ('command', 'dockerfile', 'conceptual');
+-- WARNING: This schema is for context only and is not meant to be run.
+-- Table order and constraints may not be valid for execution.
 
--- Habilita la extensión vector para embeddings semánticos (si aún no está activa)
-CREATE EXTENSION IF NOT EXISTS vector;
-
--- Tipos existentes
-CREATE TYPE user_role AS ENUM ('admin', 'student');
-CREATE TYPE exercise_type AS ENUM ('command', 'dockerfile', 'conceptual');
-
--- Tabla de usuarios
-CREATE TABLE IF NOT EXISTS public.users (
-	id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-	name TEXT NOT NULL,
-	email TEXT UNIQUE NOT NULL,
-	role user_role NOT NULL,
-	created_at TIMESTAMPTZ DEFAULT NOW(),
-	updated_at TIMESTAMPTZ DEFAULT NOW()
+CREATE TABLE public.completed_guides (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  guide_id uuid,
+  user_id uuid,
+  completed_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT completed_guides_pkey PRIMARY KEY (id),
+  CONSTRAINT completed_guides_guide_id_fkey FOREIGN KEY (guide_id) REFERENCES public.guides(id),
+  CONSTRAINT completed_guides_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id)
 );
-
--- Tabla de guías
-CREATE TABLE IF NOT EXISTS public.guides (
-	id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-	title TEXT NOT NULL,
-	content_html TEXT,
-	"order" INTEGER NOT NULL,
-	topic TEXT,
-	is_active BOOLEAN DEFAULT TRUE,
-	created_at TIMESTAMPTZ DEFAULT NOW(),
-	updated_at TIMESTAMPTZ DEFAULT NOW()
+CREATE TABLE public.exercise_attempts (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  exercise_id uuid,
+  user_id uuid,
+  submitted_answer text,
+  structural_validation_passed boolean,
+  llm_feedback text,
+  completed boolean DEFAULT false,
+  created_at timestamp with time zone DEFAULT now(),
+  updated_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT exercise_attempts_pkey PRIMARY KEY (id),
+  CONSTRAINT exercise_attempts_exercise_id_fkey FOREIGN KEY (exercise_id) REFERENCES public.exercises(id),
+  CONSTRAINT exercise_attempts_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id)
 );
-
--- Tabla de ejercicios
-CREATE TABLE IF NOT EXISTS public.exercises (
-	id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-	guide_id UUID REFERENCES guides(id) ON DELETE CASCADE,
-	title TEXT NOT NULL,
-	content_html TEXT,
-	difficulty TEXT NOT NULL,
-	expected_answer TEXT NOT NULL,
-	ai_context TEXT,
-	type exercise_type NOT NULL,
-	enable_structural_validation BOOLEAN NOT NULL DEFAULT TRUE,
-	enable_llm_feedback BOOLEAN NOT NULL DEFAULT TRUE,
-	is_active BOOLEAN DEFAULT TRUE,
-	created_at TIMESTAMPTZ DEFAULT NOW(),
-	updated_at TIMESTAMPTZ DEFAULT NOW()
+CREATE TABLE public.exercise_conversation_vectors (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  user_id uuid,
+  exercise_id uuid,
+  attempt_id uuid,
+  type text,
+  content text,
+  embedding USER-DEFINED,
+  created_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT exercise_conversation_vectors_pkey PRIMARY KEY (id),
+  CONSTRAINT exercise_conversation_vectors_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id),
+  CONSTRAINT exercise_conversation_vectors_exercise_id_fkey FOREIGN KEY (exercise_id) REFERENCES public.exercises(id),
+  CONSTRAINT exercise_conversation_vectors_attempt_id_fkey FOREIGN KEY (attempt_id) REFERENCES public.exercise_attempts(id)
 );
-
--- Tabla de intentos de ejercicios
-CREATE TABLE IF NOT EXISTS public.exercise_attempts (
-	id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-	exercise_id UUID REFERENCES exercises(id) ON DELETE CASCADE,
-	user_id UUID REFERENCES users(id) ON DELETE CASCADE,
-	submitted_answer TEXT,
-	structural_validation_passed BOOLEAN,
-	llm_feedback TEXT,
-	completed BOOLEAN DEFAULT FALSE,
-	created_at TIMESTAMPTZ DEFAULT NOW(),
-	updated_at TIMESTAMPTZ DEFAULT NOW()
+CREATE TABLE public.exercises (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  guide_id uuid,
+  title text NOT NULL,
+  content_html text,
+  expected_answer text NOT NULL,
+  ai_context text,
+  type USER-DEFINED NOT NULL,
+  is_active boolean DEFAULT true,
+  created_at timestamp with time zone DEFAULT now(),
+  updated_at timestamp with time zone DEFAULT now(),
+  difficulty text,
+  enable_structural_validation boolean NOT NULL DEFAULT true,
+  enable_llm_feedback boolean NOT NULL DEFAULT true,
+  CONSTRAINT exercises_pkey PRIMARY KEY (id),
+  CONSTRAINT exercises_guide_id_fkey FOREIGN KEY (guide_id) REFERENCES public.guides(id)
 );
-
--- Tabla de guías completadas
-CREATE TABLE IF NOT EXISTS public.completed_guides (
-	id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-	guide_id UUID REFERENCES guides(id) ON DELETE CASCADE,
-	user_id UUID REFERENCES users(id) ON DELETE CASCADE,
-	completed_at TIMESTAMPTZ DEFAULT NOW()
+CREATE TABLE public.guides (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  title text NOT NULL,
+  content_html text,
+  order integer NOT NULL,
+  topic text,
+  is_active boolean DEFAULT true,
+  created_at timestamp with time zone DEFAULT now(),
+  updated_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT guides_pkey PRIMARY KEY (id)
 );
-
--- NUEVA TABLA: Conversación semántica por ejercicio (memoria vectorial)
-CREATE TABLE IF NOT EXISTS public.exercise_conversation_vectors (
-	id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-	user_id UUID REFERENCES users(id) ON DELETE CASCADE,
-	exercise_id UUID REFERENCES exercises(id) ON DELETE CASCADE,
-	attempt_id UUID REFERENCES exercise_attempts(id) ON DELETE CASCADE,
-	type TEXT, -- 'attempt', 'feedback', 'question', 'answer'
-	content TEXT,
-	embedding vector(1536), -- Cambia el tamaño si tu modelo de embedding es diferente
-	created_at TIMESTAMPTZ DEFAULT NOW()
+CREATE TABLE public.llm_metrics (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  user_id uuid,
+  exercise_id uuid,
+  attempt_id uuid,
+  model text,
+  prompt_tokens integer,
+  completion_tokens integer,
+  latency_ms double precision,
+  quality_flags jsonb,
+  created_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT llm_metrics_pkey PRIMARY KEY (id),
+  CONSTRAINT llm_metrics_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id),
+  CONSTRAINT llm_metrics_exercise_id_fkey FOREIGN KEY (exercise_id) REFERENCES public.exercises(id),
+  CONSTRAINT llm_metrics_attempt_id_fkey FOREIGN KEY (attempt_id) REFERENCES public.exercise_attempts(id)
 );
-
--- Tabla de métricas de llamadas LLM
-CREATE TABLE IF NOT EXISTS public.llm_metrics (
-	id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-	user_id UUID REFERENCES users(id) ON DELETE CASCADE,
-	exercise_id UUID REFERENCES exercises(id) ON DELETE CASCADE,
-	attempt_id UUID REFERENCES exercise_attempts(id) ON DELETE SET NULL,
-	model TEXT,
-	prompt_tokens INTEGER,
-	completion_tokens INTEGER,
-	latency_ms DOUBLE PRECISION,
-	quality_flags JSONB,
-	created_at TIMESTAMPTZ DEFAULT NOW()
+CREATE TABLE public.users (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  name text NOT NULL,
+  email text NOT NULL UNIQUE,
+  role USER-DEFINED NOT NULL,
+  created_at timestamp with time zone DEFAULT now(),
+  updated_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT users_pkey PRIMARY KEY (id)
 );
-
--- Si necesitas actualizar una tabla existente para agregar algún campo, usa ALTER TABLE. 
--- Ejemplo: ALTER TABLE exercise_attempts ADD COLUMN nuevo_campo TEXT;
--- (En este caso, no se requiere editar las existentes, solo agregar la nueva tabla para memoria vectorial.)
