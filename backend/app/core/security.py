@@ -66,7 +66,11 @@ async def _decode_supabase_token(token: str) -> Dict[str, Any]:
                 token,
                 secret,
                 algorithms=[alg],
-                options={"verify_aud": False},
+                options={
+                    "verify_aud": False,
+                    "verify_iat": False,  # Deshabilitar validación estricta de iat
+                    "verify_nbf": False,  # Deshabilitar validación estricta de nbf
+                },
             )
         except jwt.PyJWTError as e:
             raise HTTPException(status_code=401, detail=f"Token inválido (HS): {e}")
@@ -83,7 +87,11 @@ async def _decode_supabase_token(token: str) -> Dict[str, Any]:
             public_key,
             algorithms=[jwk_dict.get('alg', 'RS256')],
             audience=None,
-            options={"verify_aud": False},
+            options={
+                "verify_aud": False,
+                "verify_iat": False,  # Deshabilitar validación estricta de iat
+                "verify_nbf": False,  # Deshabilitar validación estricta de nbf
+            },
         )
     except jwt.PyJWTError as e:
         raise HTTPException(status_code=401, detail=f"Token inválido (RSA): {e}")
