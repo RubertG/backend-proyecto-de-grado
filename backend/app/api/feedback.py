@@ -3,6 +3,7 @@ from pydantic import BaseModel, Field
 from typing import Optional, List
 from ..validators.command import validate_command
 from ..validators.dockerfile import validate_dockerfile
+from ..validators.compose import validate_compose
 from ..core.security import get_current_user, AuthUser
 from ..db.database import get_db, Database
 from ..llm_feedback.feedback_chain import get_feedback_service, FeedbackService
@@ -37,7 +38,7 @@ async def create_attempt_feedback(payload: FeedbackAttemptIn, db: Database = Dep
 
     ex_type = exercise.get('type')
     # Validación estructural previa si está habilitada
-    if exercise.get('enable_structural_validation') and ex_type in ("command", "dockerfile"):
+    if exercise.get('enable_structural_validation') and ex_type in ("command", "dockerfile", "compose"):
         answer = payload.submitted_answer or ""
         if ex_type == "command":
             cmd_res = validate_command(answer)
@@ -55,6 +56,15 @@ async def create_attempt_feedback(payload: FeedbackAttemptIn, db: Database = Dep
                     "message": "Validación estructural falló (dockerfile)",
                     "errors": df_res.errors,
                     "warnings": df_res.warnings,
+                    "structure_valid": False
+                })
+        elif ex_type == "compose":
+            comp_res = validate_compose(answer)
+            if not comp_res.is_valid:
+                raise HTTPException(status_code=422, detail={
+                    "message": "Validación estructural falló (compose)",
+                    "errors": comp_res.errors,
+                    "warnings": comp_res.warnings,
                     "structure_valid": False
                 })
 

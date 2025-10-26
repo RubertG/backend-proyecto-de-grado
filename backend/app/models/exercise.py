@@ -1,7 +1,7 @@
 from pydantic import BaseModel, Field
 from typing import Literal, Optional
 
-ExerciseType = Literal['command', 'dockerfile', 'conceptual']
+ExerciseType = Literal['command', 'dockerfile', 'conceptual', 'compose']
 
 class ExerciseBase(BaseModel):
     guide_id: str

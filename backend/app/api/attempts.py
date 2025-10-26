@@ -5,6 +5,7 @@ from ..db.database import get_db, Database
 from ..core.security import get_current_user, AuthUser
 from ..validators.dockerfile import validate_dockerfile
 from ..validators.command import validate_command, validate_conceptual
+from ..validators.compose import validate_compose
 import uuid
 
 router = APIRouter(prefix="/attempts", tags=["attempts"])
@@ -32,6 +33,11 @@ async def create_attempt(payload: AttemptCreate, db: Database = Depends(get_db),
             structural_passed = result.is_valid
             structural_errors = [] if result.is_valid else result.errors
             structural_warnings = []
+        elif ex_type == 'compose':
+            result = validate_compose(answer)
+            structural_passed = result.is_valid
+            structural_errors = result.errors if result.errors else []
+            structural_warnings = result.warnings if result.warnings else []
         elif ex_type == 'conceptual':
             structural_passed = validate_conceptual(answer)
             structural_errors = [] if structural_passed else ["Error inesperado en conceptual"]
@@ -43,7 +49,7 @@ async def create_attempt(payload: AttemptCreate, db: Database = Depends(get_db),
     # - otros tipos: se deja False (extensible futuro)
     ex_type = exercise.get('type')
     completed_flag = False
-    if ex_type in ('command', 'dockerfile'):
+    if ex_type in ('command', 'dockerfile', 'compose'):
         completed_flag = bool(structural_passed)  # True sólo si pasó validación
     elif ex_type == 'conceptual':
         completed_flag = True
