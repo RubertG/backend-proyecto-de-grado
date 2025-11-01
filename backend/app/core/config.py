@@ -13,7 +13,7 @@ class Settings(BaseSettings):
     EMBEDDING_MODEL: str = "text-embedding-004"  # Modelo Gemini embedding por defecto
     EMBEDDING_DIM: int | None = None  # Si None se infiere por modelo
     LLM_MODEL: str = "gemini-2.0-flash"  # Modelo conversacional por defecto
-    LLM_TEMPERATURE: float = 0.3
+    LLM_TEMPERATURE: float = 0.4
     GOOGLE_API_KEY: str | None = None  # Clave para modelos Gemini (opcional)
     # --- Similaridad / embeddings avanzados ---
     SIMILARITY_TOP_K: int = 4
