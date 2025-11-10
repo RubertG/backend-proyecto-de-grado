@@ -64,10 +64,10 @@ Produce feedback ÚTIL en Markdown. Usa solo encabezados con contenido real, por
 Lineamientos:
 - NO inventes secciones vacías.
 - Si casi todo está correcto, resalta brevemente lo positivo y ofrece 1–3 mejoras.
-- NO hagas preguntas de seguimiento; finaliza con una frase motivadora breve opcional.
 - No repitas íntegramente la respuesta esperada.
 - No incluyas enlaces, referencias externas ni citas.
-- Prioriza brevedad con claridad: normalmente 5–12 líneas.
+- Prioriza brevedad con claridad: normalmente 5-20 líneas. (Tampoco es algo obligatorio, depende del caso) 
+- Si el user pregunta algo específico en el diálogo posterior, responde correctamente si tiene que ver con el ejercicio o la guía, si es muy alejado, ofrece una respuesta más general y al final dile que siga con los otros ejercicios.
 """.strip()
 
 def _truncate(text: str, budget: int) -> str:
